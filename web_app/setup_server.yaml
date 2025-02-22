@@ -1,0 +1,53 @@
+---
+- name: Configure web server
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install Python and Flask
+      apt:
+        name:
+          - python3
+          - python3-pip
+        state: present
+        update_cache: yes
+
+    - name: Install Flask using pip
+      pip:
+        name: flask
+        executable: pip3
+
+    - name: Create a directory for the Nextcloud files on the server
+      file:
+        path: /home/ubuntu/nextcloud
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Copy the Nextcloud files from the local machine to the server
+      copy:
+        src: ./nextcloud/
+        dest: /home/ubuntu/
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+        remote_src: no
+
+    - name: Copy the Python script for the web server
+      copy:
+        src: ./app.py
+        dest: /home/ubuntu/app.py
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Allow HTTP traffic through the firewall
+      ufw:
+        rule: allow
+        port: 80
+        proto: tcp
+
+    - name: Start the Flask web server
+      shell: nohup python3 /home/ubuntu/app.py > /dev/null 2>&1 &
+      args:
+        chdir: /home/ubuntu
